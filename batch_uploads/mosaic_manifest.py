@@ -1,7 +1,18 @@
 import os
 import json
 import re
+import logging
 from datetime import datetime
+import  subprocess
+
+logging.basicConfig(filename='info.log',
+                    filemode='a',
+                    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                    datefmt='%H:%M:%S',
+                    level=logging.INFO)
+
+logging.info("Running Batch Manifest Uploader")
+logger = logging.getLogger('mosaic_manifest')
 
 class mosaic_manifest(object):
   def __init__(self,bucket,ee_dest, sub_dir=None):
@@ -51,7 +62,7 @@ class mosaic_manifest(object):
   def parse_time_from_folder(self):
     # todo: make this optional and add in sd/ed as cli inputs
     date_dir = self.sub_dir.split("/")[-1]
-    
+
     search = re.search('^(\d{4}-\d{2}-\d{2})-(\d{4}-\d{2}-\d{2})$', date_dir)
     groups = search.groups()
     start_time = f"{datetime.strptime(groups[0],'%Y-%m-%d').isoformat()}Z"
@@ -66,6 +77,10 @@ class mosaic_manifest(object):
 
     asset_name = self.ee_dest
     start_time, end_time = self.parse_time_from_folder()
+    
+    logger.info(f"asset name: {asset_name}")
+    logger.info(f"start date:{start_time} end date: {end_time}")
+    
     # The enclosing object for the asset.
     asset = {
       'name': asset_name,
@@ -113,14 +128,18 @@ class mosaic_manifest(object):
     if manifest is None:
       manifest = self.FULL_PATH
 
-    os.system(f"earthengine upload image --manifest {manifest}")
+    logger.info(f"manifest saved to: {self.FULL_PATH}")
+
+    result = subprocess.check_output(f"earthengine upload image --manifest {manifest}", shell=True)
+    task_id = re.search(r"(b'Started upload task with ID:) ([\w{1:24}\d{1:24}]*)(\\r\\n')",str(result))
+    print(str(result))
+    logger.info(f"task id:{task_id.groups()[1]}")
 
 
 if __name__ == "__main__":
   import argparse
   import textwrap
 
-  # Initiate the parser
   desc = """CLI for making and uploading Planet 4-Band quad imagery stored in a Google Storage Bucket
   
       e.x. making a mosaic and using the current path to save the manifest.json
