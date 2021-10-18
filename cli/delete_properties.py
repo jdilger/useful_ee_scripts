@@ -10,8 +10,7 @@ prop_to_remove_b = 'accidental_prop'
 
 dry_run = True
 for i in assets:
-    asset_name = i.split("/")[-1]
-    command = ['earthengine', 'asset', 'set','--property ',f'{prop_to_remove_a}=null','--property',f'{prop_to_remove_b}=null']
+    command = ['earthengine', 'asset', 'set','--property ',f'{prop_to_remove_a}=null','--property',f'{prop_to_remove_b}=null',i]
     if dry_run:
         print('DRY RUN '," ".join(command))
     else:
